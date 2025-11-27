@@ -221,29 +221,34 @@
         font-size: 12px;
       }
 
-      .vendor-list {
+      .vendor-tabs {
         display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
         gap: 8px;
       }
 
-      .vendor-list label {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 10px 12px;
-        border: 1px solid #d7deec;
+      .vendor-tab {
+        padding: 12px 10px;
         border-radius: 12px;
+        border: 1px solid #d7deec;
+        background: #ffffff;
         cursor: pointer;
-        transition: border-color 120ms ease, box-shadow 120ms ease;
+        text-align: center;
+        font-weight: 700;
+        transition: border-color 120ms ease, box-shadow 120ms ease, color 120ms ease;
       }
 
-      .vendor-list label:hover {
+      .vendor-tab:hover {
         border-color: #0f766e;
+        color: #0f766e;
         box-shadow: 0 8px 24px rgba(15, 118, 110, 0.12);
       }
 
-      .vendor-list input[type="radio"] {
-        accent-color: #0f766e;
+      .vendor-tab.active {
+        border-color: #0f766e;
+        color: #0f766e;
+        background: #ecfdf5;
+        box-shadow: 0 10px 30px rgba(15, 118, 110, 0.16);
       }
 
       @media (max-width: 900px) {
@@ -303,12 +308,12 @@
         <div class="card">
           <div>
             <label for="vendor">제조사 / BMC</label>
-            <div class="vendor-list" id="vendor-list">
-              <label><input type="radio" name="vendor" value="hpe" checked /> HPE (iLO)</label>
-              <label><input type="radio" name="vendor" value="dell" /> Dell (iDRAC)</label>
-              <label><input type="radio" name="vendor" value="lenovo" /> Lenovo/IBM (XCC/IMM)</label>
-              <label><input type="radio" name="vendor" value="supermicro" /> Supermicro (BMC/IPMI)</label>
-              <label><input type="radio" name="vendor" value="other" /> 기타/확인 필요</label>
+            <div class="vendor-tabs" id="vendor-tabs">
+              <div class="vendor-tab active" data-vendor="hpe">HPE (iLO)</div>
+              <div class="vendor-tab" data-vendor="dell">Dell (iDRAC)</div>
+              <div class="vendor-tab" data-vendor="lenovo">Lenovo/IBM (XCC/IMM)</div>
+              <div class="vendor-tab" data-vendor="supermicro">Supermicro (BMC/IPMI)</div>
+              <div class="vendor-tab" data-vendor="other">기타/확인 필요</div>
             </div>
             <p class="hint">제조사를 선택하면 권장 수집 방식과 샘플 명령을 보여줍니다.</p>
           </div>
@@ -411,8 +416,8 @@
       const fallback = document.getElementById("fallback");
 
       function render() {
-        const checked = document.querySelector('input[name="vendor"]:checked');
-        const key = checked ? checked.value : "hpe";
+        const active = document.querySelector(".vendor-tab.active");
+        const key = active ? active.dataset.vendor : "hpe";
         const profile = profiles[key];
         const ip = "<bmc-ip>";
         const user = "<user>";
@@ -426,10 +431,12 @@
         fallback.textContent = profile.fallback;
       }
 
-      document.getElementById("vendor-list").addEventListener("change", (e) => {
-        if (e.target && e.target.name === "vendor") {
-          render();
-        }
+      document.getElementById("vendor-tabs").addEventListener("click", (e) => {
+        const tab = e.target.closest(".vendor-tab");
+        if (!tab) return;
+        document.querySelectorAll(".vendor-tab").forEach((t) => t.classList.remove("active"));
+        tab.classList.add("active");
+        render();
       });
       render();
     </script>
