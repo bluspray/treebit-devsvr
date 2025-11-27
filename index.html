@@ -263,6 +263,17 @@
         </p>
       </header>
 
+      <div class="card">
+        <h2>로그 분석/예측 알고리즘 개요</h2>
+        <p class="muted">
+          TEMS는 BMC 로그를 정규화(timestamp/host/service/severity/message)한 뒤 메시지를 템플릿화 또는 TF-IDF로 벡터화하고, 최근 윈도우의 심각도 비율·서비스별 카운트·메시지 임베딩을 특징으로 만듭니다.
+          IsolationForest 기반 이상 탐지로 윈도우 이상도를 계산해 0~1 리스크 스코어로 정규화하며, 메시지 키워드/템플릿을 전력(PSU/전압), 냉각(FAN), 스토리지(SMART), 네트워크(timeout/latency) 등으로 매핑해 원인 후보를 집계합니다.
+          ALL 모드에서는 ILO/IDRAC/IMM/슈퍼마이크로/기타 로그를 합쳐 분석하고, 최근 로그를 Evidence로 함께 표시합니다. 실제 환경에서는 Redfish/IPMI 원시 로그를 투입해 Drain3 같은 템플릿화로 노이즈를 줄이고,
+          라벨이 있으면 분류/시퀀스 모델(LSTM/Transformer)로 확장하거나, 무라벨이면 One-Class SVM/AutoEncoder 등으로 교체해 성능을 높일 수 있습니다. 현재는 모의 데이터와 단순 키워드 매핑+IsolationForest 흐름을 사용하며,
+          실데이터 연동 시 스코어/원인/증거가 실시간으로 갱신됩니다.
+        </p>
+      </div>
+
       <div class="grid">
         <div class="card">
           <div>
