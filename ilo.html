@@ -51,12 +51,60 @@
         font-weight: 700;
         padding: 6px 10px;
         border-radius: 10px;
-        transition: background 120ms ease, color 120ms ease;
+        transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+        border: 1px solid transparent;
       }
 
-      .nav a:hover {
+      .nav a:hover,
+      .dropbtn:hover {
         background: #0f766e;
         color: #fff;
+        border-color: #0f766e;
+      }
+
+      .dropdown {
+        position: relative;
+      }
+
+      .dropbtn {
+        background: transparent;
+        border: 1px solid transparent;
+        font-weight: 700;
+        padding: 6px 10px;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: background 120ms ease, color 120ms ease, border-color 120ms ease;
+      }
+
+      .dropdown-menu {
+        display: none;
+        position: absolute;
+        top: 110%;
+        left: 0;
+        background: #ffffff;
+        border: 1px solid #d7deec;
+        border-radius: 12px;
+        box-shadow: 0 10px 40px rgba(15, 23, 42, 0.12);
+        padding: 8px;
+        min-width: 180px;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .dropdown-menu a {
+        display: block;
+        padding: 8px 10px;
+        border-radius: 8px;
+        border: 1px solid transparent;
+      }
+
+      .dropdown-menu a:hover {
+        background: #e2f3f0;
+        border-color: #0f766e;
+      }
+
+      .dropdown:hover .dropdown-menu {
+        display: flex;
       }
 
       .page {
@@ -194,15 +242,25 @@
     </style>
   </head>
   <body>
+    <script>
+      (() => {
+        const ok = localStorage.getItem("hwmon_logged_in") === "1";
+        if (!ok) window.location.href = "/ui/login.html";
+      })();
+    </script>
     <nav class="nav">
       <div class="nav-inner">
         <a href="/ui/index.html">Home</a>
-        <a href="/ui/login.html">Login</a>
-        <a href="/ui/ilo.html">HPE iLO</a>
-        <a href="/ui/idrac.html">Dell iDRAC</a>
-        <a href="/ui/imm.html">Lenovo/IMM</a>
-        <a href="/ui/supermicro.html">Supermicro</a>
-        <a href="/ui/other.html">기타/ETC</a>
+        <div class="dropdown">
+          <button class="dropbtn">제조사별</button>
+          <div class="dropdown-menu">
+            <a href="/ui/ilo.html">HPE iLO</a>
+            <a href="/ui/idrac.html">Dell iDRAC</a>
+            <a href="/ui/imm.html">Lenovo/IMM</a>
+            <a href="/ui/supermicro.html">Supermicro</a>
+            <a href="/ui/other.html">기타/ETC</a>
+          </div>
+        </div>
         <a href="/ui/servers.html">Server Info</a>
         <a href="/ui/logs.html">Logs</a>
         <a href="/ui/analysis.html">Analysis</a>
