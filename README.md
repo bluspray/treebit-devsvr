@@ -15,3 +15,18 @@
 - API 서버와 연동해 선택 결과를 저장/배포하도록 연결.
 - 장비 등록/인증서 검증 플로우 추가.
 - Redfish/Ipmi 호출을 서버에서 실제로 실행하는 모듈을 붙여서 실데이터를 렌더링.
+
+## Backend (FastAPI)
+경로: `backend/app/main.py`
+
+```bash
+cd backend
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r ../requirements.txt
+uvicorn app.main:app --host 0.0.0.0 --port 8000
+```
+
+엔드포인트:
+- `GET /health`
+- `POST /predict` (샘플 위험도 스코어; 실제 모델로 교체 필요)
