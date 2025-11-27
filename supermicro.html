@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>하드웨어 모니터링 입력</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        font-family: "Manrope", "Segoe UI", system-ui, -apple-system, sans-serif;
+        color: #0f172a;
+        background: linear-gradient(135deg, #f4f7fb 0%, #e8edf6 50%, #e3e9f2 100%);
+        line-height: 1.5;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+      }
+
+      .page {
+        max-width: 1000px;
+        margin: 0 auto;
+        padding: 40px 20px 64px;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+
+      header {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 28px;
+      }
+
+      .lede {
+        margin: 0;
+        color: #475569;
+      }
+
+      .card {
+        background: #ffffff;
+        border: 1px solid #d6deec;
+        border-radius: 16px;
+        padding: 18px;
+        box-shadow: 0 14px 40px rgba(15, 23, 42, 0.08);
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      label {
+        font-weight: 700;
+        display: block;
+        margin-bottom: 6px;
+      }
+
+      input {
+        width: 100%;
+        padding: 10px 12px;
+        border-radius: 12px;
+        border: 1px solid #cbd5e1;
+        background: #f8fafc;
+        font-size: 15px;
+      }
+
+      button {
+        border: none;
+        padding: 12px 14px;
+        border-radius: 12px;
+        background: #0f766e;
+        color: #fff;
+        font-weight: 800;
+        cursor: pointer;
+        transition: transform 120ms ease, box-shadow 120ms ease;
+      }
+
+      button:hover {
+        box-shadow: 0 10px 30px rgba(15, 118, 110, 0.2);
+      }
+
+      button:active {
+        transform: translateY(1px);
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        align-items: start;
+      }
+
+      .muted {
+        color: #475569;
+        margin: 0;
+      }
+
+      .logs {
+        display: grid;
+        gap: 8px;
+      }
+
+      .log-row {
+        display: grid;
+        grid-template-columns: 130px 80px 1fr;
+        gap: 10px;
+        align-items: center;
+        padding: 10px 12px;
+        border-radius: 12px;
+        border: 1px solid #d7deec;
+        background: #f8fafc;
+      }
+
+      .badge {
+        padding: 6px 10px;
+        border-radius: 10px;
+        font-weight: 700;
+        font-size: 12px;
+        text-transform: uppercase;
+        text-align: center;
+      }
+
+      .severity-INFO {
+        background: #e0f2fe;
+        color: #075985;
+      }
+
+      .severity-WARN {
+        background: #ffedd5;
+        color: #9a3412;
+      }
+
+      .severity-ERROR,
+      .severity-CRITICAL {
+        background: #fee2e2;
+        color: #b91c1c;
+      }
+
+      @media (max-width: 900px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+
+        .log-row {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <header>
+        <h1 id="title">BMC 접속</h1>
+        <p class="lede" id="lede">
+          제조사별 iLO/iDRAC/IMM 정보를 입력하고 연결합니다.
+        </p>
+      </header>
+
+      <div class="grid">
+        <div class="card">
+          <h2>접속 정보</h2>
+          <div>
+            <label for="host">BMC 호스트/IP</label>
+            <input id="host" type="text" placeholder="예: 172.30.1.10" />
+          </div>
+          <div>
+            <label for="user">계정</label>
+            <input id="user" type="text" placeholder="예: admin" />
+          </div>
+          <div>
+            <label for="pass">비밀번호</label>
+            <input id="pass" type="password" placeholder="비밀번호" />
+          </div>
+          <button id="submit">접속 & 조회</button>
+          <p class="muted">
+            데모 모드: 실제 BMC에 연결하지 않고 모의 데이터로 응답합니다. 백엔드가 준비되면 API 엔드포인트만 맞추세요.
+          </p>
+        </div>
+
+        <div class="card">
+          <h2>하드웨어 정보</h2>
+          <p id="hardware">입력 후 조회를 눌러주세요.</p>
+          <h2>리스크 분석</h2>
+          <p id="analysis">-</p>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>로그</h2>
+        <div class="logs" id="logs"></div>
+      </div>
+    </div>
+
+    <script>
+      // 페이지명에 따라 vendor를 결정 (파일 이름 기준)
+      const path = window.location.pathname.toLowerCase();
+      let vendor = "hpe";
+      if (path.includes("idrac")) vendor = "dell";
+      if (path.includes("imm") || path.includes("lenovo")) vendor = "lenovo";
+      if (path.includes("supermicro")) vendor = "supermicro";
+      if (path.includes("other")) vendor = "other";
+
+      const vendorTitle = {
+        hpe: "HPE iLO",
+        dell: "Dell iDRAC",
+        lenovo: "Lenovo/IBM IMM",
+        supermicro: "Supermicro (IPMItool)",
+        other: "기타/ETC (IPMItool)",
+      };
+
+      document.getElementById("title").textContent = `${vendorTitle[vendor]} BMC 접속`;
+      document.getElementById("lede").textContent = `${vendorTitle[vendor]} 정보를 입력하고 Redfish로 조회합니다.`;
+
+      const hostEl = document.getElementById("host");
+      const userEl = document.getElementById("user");
+      const passEl = document.getElementById("pass");
+      const hardwareEl = document.getElementById("hardware");
+      const analysisEl = document.getElementById("analysis");
+      const logsEl = document.getElementById("logs");
+      const submitBtn = document.getElementById("submit");
+
+      async function fetchData() {
+        const payload = {
+          vendor,
+          bmc_host: hostEl.value.trim() || "demo.local",
+          username: userEl.value.trim() || "admin",
+          password: passEl.value || "password",
+        };
+
+        hardwareEl.textContent = "조회 중...";
+        analysisEl.textContent = "조회 중...";
+        logsEl.innerHTML = "";
+
+        try {
+          const res = await fetch("/api/connect", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          if (!res.ok) {
+            throw new Error(`API error: ${res.status}`);
+          }
+          const data = await res.json();
+          renderHardware(data.hardware);
+          renderAnalysis(data.analysis);
+          renderLogs(data.logs);
+        } catch (err) {
+          hardwareEl.textContent = "오류 발생: " + err.message;
+          analysisEl.textContent = "-";
+          logsEl.innerHTML = "";
+        }
+      }
+
+      function renderHardware(hw) {
+        hardwareEl.innerHTML = `
+          모델: <strong>${hw.model || "-"}</strong><br/>
+          시리얼: ${hw.serial || "-"}<br/>
+          펌웨어: ${hw.firmware || "-"}<br/>
+          전원 상태: ${hw.power_state || "-"}<br/>
+          마지막 부팅: ${hw.last_boot || "-"}
+        `;
+      }
+
+      function renderAnalysis(analysis) {
+        analysisEl.innerHTML = `
+          위험도 점수: <strong>${analysis.risk_score ?? 0}</strong><br/>
+          요약: ${analysis.summary || "-"}<br/>
+          인사이트: ${(analysis.insights || []).join(", ")}
+        `;
+      }
+
+      function renderLogs(logs) {
+        if (!logs || !logs.length) {
+          logsEl.textContent = "로그가 없습니다.";
+          return;
+        }
+        logsEl.innerHTML = logs
+          .map(
+            (log) => `
+            <div class="log-row">
+              <span>${log.timestamp}</span>
+              <span class="badge severity-${log.severity.toUpperCase()}">${log.severity}</span>
+              <span>${log.message}</span>
+            </div>
+          `,
+          )
+          .join("");
+      }
+
+      submitBtn.addEventListener("click", fetchData);
+    </script>
+  </body>
+</html>

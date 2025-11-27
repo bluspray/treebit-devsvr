@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>로그 분석 | TEMS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        font-family: "Space Grotesk", "Segoe UI", system-ui, -apple-system, sans-serif;
+        color: #0f172a;
+        background: linear-gradient(135deg, #f3f6fb 0%, #e8edf6 50%, #e3e9f2 100%);
+        line-height: 1.5;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+      }
+
+      .page {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 48px 20px 72px;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+
+      header {
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 30px;
+      }
+
+      .lede {
+        margin: 0;
+        color: #475569;
+      }
+
+      .card {
+        background: #ffffff;
+        border: 1px solid #d6deec;
+        border-radius: 16px;
+        padding: 18px;
+        box-shadow: 0 14px 40px rgba(15, 23, 42, 0.08);
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .chips {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 10px;
+      }
+
+      .chip {
+        padding: 10px 12px;
+        border-radius: 12px;
+        border: 1px solid #cbd5e1;
+        background: #ffffff;
+        cursor: pointer;
+        text-align: center;
+        font-weight: 700;
+        transition: transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
+      }
+
+      .chip:hover {
+        box-shadow: 0 10px 30px rgba(15, 118, 110, 0.15);
+      }
+
+      .chip.active {
+        border-color: #0f766e;
+        color: #0f766e;
+        box-shadow: 0 10px 30px rgba(15, 118, 110, 0.2);
+      }
+
+      .metric {
+        font-size: 32px;
+        font-weight: 800;
+        color: #0f766e;
+        margin: 0;
+      }
+
+      .muted {
+        color: #475569;
+        margin: 0;
+      }
+
+      ul {
+        margin: 0;
+        padding-left: 20px;
+      }
+
+      .evidence {
+        display: grid;
+        gap: 8px;
+      }
+
+      .evidence-item {
+        padding: 10px 12px;
+        border-radius: 10px;
+        border: 1px solid #d7deec;
+        background: #f8fafc;
+        font-size: 14px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <header>
+        <h1>로그 패턴 분석</h1>
+        <p class="lede">모든 제조사의 로그를 분석해 장애 위험도와 주요 원인(가설)을 제시합니다. (모의 데이터)</p>
+      </header>
+
+      <div class="card">
+        <h2>대상 선택</h2>
+        <div class="chips" id="vendor-chips">
+          <div class="chip active" data-vendor="all">ALL</div>
+          <div class="chip" data-vendor="hpe">HPE iLO</div>
+          <div class="chip" data-vendor="dell">Dell iDRAC</div>
+          <div class="chip" data-vendor="lenovo">Lenovo/IMM</div>
+          <div class="chip" data-vendor="supermicro">Supermicro (IPMItool)</div>
+          <div class="chip" data-vendor="other">기타/ETC (IPMItool)</div>
+        </div>
+      </div>
+
+      <div class="card" id="result-card">
+        <h2>분석 결과</h2>
+        <p class="metric" id="risk">-</p>
+        <p class="muted" id="summary">분석을 실행하세요.</p>
+        <div>
+          <h3>주요 원인 후보</h3>
+          <ul id="insights"></ul>
+        </div>
+        <div>
+          <h3>증거 로그</h3>
+          <div class="evidence" id="evidence"></div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const chipsEl = document.getElementById("vendor-chips");
+      const riskEl = document.getElementById("risk");
+      const summaryEl = document.getElementById("summary");
+      const insightsEl = document.getElementById("insights");
+      const evidenceEl = document.getElementById("evidence");
+      let activeVendor = "all";
+
+      async function runAnalysis(vendor) {
+        riskEl.textContent = "분석 중...";
+        summaryEl.textContent = "";
+        insightsEl.innerHTML = "";
+        evidenceEl.innerHTML = "";
+        try {
+          const res = await fetch("/api/analyze", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ vendor }),
+          });
+          if (!res.ok) throw new Error(`API error ${res.status}`);
+          const data = await res.json();
+          riskEl.textContent = `Risk: ${(data.risk_score ?? 0).toFixed(2)}`;
+          summaryEl.textContent = data.summary || "-";
+          insightsEl.innerHTML = (data.insights || [])
+            .map((item) => `<li>${Array.isArray(item) ? item.join(": ") : item}</li>`)
+            .join("") || "<li>없음</li>";
+          evidenceEl.innerHTML = (data.evidence || [])
+            .map((ev) => `<div class="evidence-item">${ev}</div>`)
+            .join("") || '<div class="evidence-item">없음</div>';
+        } catch (err) {
+          riskEl.textContent = "-";
+          summaryEl.textContent = "오류: " + err.message;
+          insightsEl.innerHTML = "";
+          evidenceEl.innerHTML = "";
+        }
+      }
+
+      chipsEl.addEventListener("click", (e) => {
+        const chip = e.target.closest(".chip");
+        if (!chip) return;
+        document.querySelectorAll(".chip").forEach((c) => c.classList.remove("active"));
+        chip.classList.add("active");
+        activeVendor = chip.dataset.vendor;
+        runAnalysis(activeVendor);
+      });
+
+      // 초기 실행
+      runAnalysis(activeVendor);
+    </script>
+  </body>
+</html>

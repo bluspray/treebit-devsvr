@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>서버 로그 조회 | TEMS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        font-family: "Space Grotesk", "Segoe UI", system-ui, -apple-system, sans-serif;
+        color: #0f172a;
+        background: linear-gradient(135deg, #f3f6fb 0%, #e8edf6 50%, #e3e9f2 100%);
+        line-height: 1.5;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+      }
+
+      .page {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 48px 20px 72px;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+
+      header {
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 30px;
+      }
+
+      .lede {
+        margin: 0;
+        color: #475569;
+      }
+
+      .chips {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 10px;
+        margin-bottom: 8px;
+      }
+
+      .chip {
+        padding: 10px 12px;
+        border-radius: 12px;
+        border: 1px solid #cbd5e1;
+        background: #ffffff;
+        cursor: pointer;
+        text-align: center;
+        font-weight: 700;
+        transition: transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
+      }
+
+      .chip:hover {
+        box-shadow: 0 10px 30px rgba(15, 118, 110, 0.15);
+      }
+
+      .chip.active {
+        border-color: #0f766e;
+        color: #0f766e;
+        box-shadow: 0 10px 30px rgba(15, 118, 110, 0.2);
+      }
+
+      .logs {
+        display: grid;
+        gap: 10px;
+      }
+
+      .log-row {
+        display: grid;
+        grid-template-columns: 220px 90px 1fr;
+        gap: 10px;
+        align-items: center;
+        padding: 10px 12px;
+        border-radius: 12px;
+        border: 1px solid #d7deec;
+        background: #f8fafc;
+      }
+
+      .badge {
+        padding: 6px 10px;
+        border-radius: 10px;
+        font-weight: 700;
+        font-size: 12px;
+        text-transform: uppercase;
+        text-align: center;
+      }
+
+      .severity-INFO {
+        background: #e0f2fe;
+        color: #075985;
+      }
+
+      .severity-WARN {
+        background: #ffedd5;
+        color: #9a3412;
+      }
+
+      .severity-ERROR,
+      .severity-CRITICAL {
+        background: #fee2e2;
+        color: #b91c1c;
+      }
+
+      .muted {
+        color: #475569;
+        margin: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <header>
+        <h1>Server Logs</h1>
+        <p class="lede">서버 BMC에 연결 후 가져온 로그를 목록으로 확인합니다. (현재 모의 데이터)</p>
+      </header>
+
+      <div class="card">
+        <h2>로그 목록</h2>
+        <div class="chips" id="vendor-chips">
+          <div class="chip active" data-vendor="all">ALL</div>
+          <div class="chip" data-vendor="hpe">HPE iLO</div>
+          <div class="chip" data-vendor="dell">Dell iDRAC</div>
+          <div class="chip" data-vendor="lenovo">Lenovo/IMM</div>
+          <div class="chip" data-vendor="supermicro">Supermicro (IPMItool)</div>
+          <div class="chip" data-vendor="other">기타/ETC (IPMItool)</div>
+        </div>
+        <div class="logs" id="logs">
+          <p class="muted">아직 로그가 없습니다.</p>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const logsEl = document.getElementById("logs");
+      const chipsEl = document.getElementById("vendor-chips");
+      let activeVendor = "all";
+
+      async function fetchLogs(vendor) {
+        logsEl.innerHTML = "<p class=\"muted\">조회 중...</p>";
+        try {
+          const res = await fetch("/api/connect", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              vendor,
+              bmc_host: "demo.local",
+              username: "admin",
+              password: "password",
+            }),
+          });
+          if (!res.ok) throw new Error(`API error ${res.status}`);
+          const data = await res.json();
+          const logs = (data.logs || []).map((log) => ({ ...log, vendor: log.vendor || vendor }));
+          renderLogs(logs);
+        } catch (err) {
+          logsEl.innerHTML = `<p class="muted">오류: ${err.message}</p>`;
+        }
+      }
+
+      function renderLogs(logs) {
+        if (!logs.length) {
+          logsEl.innerHTML = '<p class="muted">로그가 없습니다.</p>';
+          return;
+        }
+        logsEl.innerHTML = logs
+          .map(
+            (log) => `
+            <div class="log-row">
+              <span>${log.vendor ? `[${log.vendor}${log.host ? "@" + log.host : ""}] ` : ""}${log.timestamp}</span>
+              <span class="badge severity-${log.severity.toUpperCase()}">${log.severity}</span>
+              <span>${log.message}</span>
+            </div>
+          `,
+          )
+          .join("");
+      }
+
+      chipsEl.addEventListener("click", (e) => {
+        const chip = e.target.closest(".chip");
+        if (!chip) return;
+        document.querySelectorAll(".chip").forEach((c) => c.classList.remove("active"));
+        chip.classList.add("active");
+        activeVendor = chip.dataset.vendor;
+        fetchLogs(activeVendor);
+      });
+
+      // 초기 데이터 조회
+      fetchLogs(activeVendor);
+    </script>
+  </body>
+</html>

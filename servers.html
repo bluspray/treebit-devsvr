@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>서버 요약 | TEMS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        font-family: "Space Grotesk", "Segoe UI", system-ui, -apple-system, sans-serif;
+        color: #0f172a;
+        background: linear-gradient(135deg, #f3f6fb 0%, #e8edf6 50%, #e3e9f2 100%);
+        line-height: 1.5;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+      }
+
+      .page {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 48px 20px 72px;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+
+      header {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        align-items: center;
+        text-align: center;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 30px;
+      }
+
+      .lede {
+        margin: 0;
+        color: #475569;
+        max-width: 760px;
+      }
+
+      .card {
+        background: #ffffff;
+        border: 1px solid #d6deec;
+        border-radius: 16px;
+        padding: 18px;
+        box-shadow: 0 14px 40px rgba(15, 23, 42, 0.08);
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      label {
+        font-weight: 700;
+        display: block;
+        margin-bottom: 6px;
+      }
+
+      select,
+      input {
+        width: 100%;
+        padding: 10px 12px;
+        border-radius: 12px;
+        border: 1px solid #cbd5e1;
+        background: #f8fafc;
+        font-size: 15px;
+      }
+
+      button {
+        border: none;
+        padding: 10px 12px;
+        border-radius: 12px;
+        background: #0f766e;
+        color: #fff;
+        font-weight: 800;
+        cursor: pointer;
+        transition: transform 120ms ease, box-shadow 120ms ease;
+      }
+
+      button:hover {
+        box-shadow: 0 10px 30px rgba(15, 118, 110, 0.2);
+      }
+
+      button:active {
+        transform: translateY(1px);
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      th,
+      td {
+        text-align: left;
+        padding: 10px;
+        border-bottom: 1px solid #e2e8f0;
+      }
+
+      th {
+        background: #f8fafc;
+        font-weight: 700;
+      }
+
+      .badge {
+        padding: 6px 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 800;
+        text-transform: uppercase;
+      }
+
+      .risk-low {
+        background: #dcfce7;
+        color: #166534;
+      }
+
+      .risk-high {
+        background: #fee2e2;
+        color: #b91c1c;
+      }
+
+      .muted {
+        color: #475569;
+        margin: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <header>
+        <h1>Server Information</h1>
+        <p class="lede">이미 추가된 서버들의 상태/로그 분석 결과를 표로 확인하세요.</p>
+      </header>
+
+      <div class="card">
+        <h2>서버 목록</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>제조사</th>
+              <th>BMC IP</th>
+              <th>모델</th>
+              <th>시리얼</th>
+              <th>전원</th>
+              <th>리스크</th>
+              <th>요약</th>
+            </tr>
+          </thead>
+          <tbody id="table-body">
+            <tr><td colspan="7" class="muted">아직 추가된 서버가 없습니다.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <script>
+      const tableBody = document.getElementById("table-body");
+
+      // 데모용 정적 데이터. 실제로는 서버에서 저장된 목록을 fetch하여 표시하세요.
+      const rows = [];
+
+      function renderTable() {
+        if (!rows.length) {
+          tableBody.innerHTML = '<tr><td colspan="7" class="muted">아직 추가된 서버가 없습니다.</td></tr>';
+          return;
+        }
+        tableBody.innerHTML = rows
+          .map((r) => {
+            const riskClass = r.risk >= 0.3 ? "risk-high" : "risk-low";
+            return `
+              <tr>
+                <td>${r.vendor}</td>
+                <td>${r.bmc}</td>
+                <td>${r.model}</td>
+                <td>${r.serial}</td>
+                <td>${r.power}</td>
+                <td><span class="badge ${riskClass}">${r.risk.toFixed(2)}</span></td>
+                <td>${r.summary}</td>
+              </tr>
+            `;
+          })
+          .join("");
+      }
+
+      renderTable();
+    </script>
+  </body>
+</html>
