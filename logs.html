@@ -307,18 +307,22 @@
           return;
         }
         logsEl.innerHTML = logs
-          .map(
-            (log) => `
-            <div class="log-row">
-              <span>${log.vendor ? `[${log.vendor}${log.host ? "@" + log.host : ""}] ` : ""}${log.timestamp}</span>
-              <span class="badge severity-${log.severity.toUpperCase()}">${log.severity}</span>
-              <span>${log.message}</span>
-              <a class="ai-link" href="/ui/ai-helper.html?q=${encodeURIComponent(
-                `${log.vendor || ""} ${log.host || ""} ${log.severity} ${log.message}`,
-              )}" target="_blank" rel="noopener">AI 해결</a>
-            </div>
-          `,
-          )
+          .map((log) => {
+            const aiLink =
+              log.severity && ["ERROR", "CRITICAL", "FATAL"].includes(log.severity.toUpperCase())
+                ? `<a class="ai-link" href="/ui/ai-helper.html?q=${encodeURIComponent(
+                    `${log.vendor || ""} ${log.host || ""} ${log.severity} ${log.message}`,
+                  )}" target="_blank" rel="noopener">AI 해결</a>`
+                : "";
+            return `
+              <div class="log-row">
+                <span>${log.vendor ? `[${log.vendor}${log.host ? "@" + log.host : ""}] ` : ""}${log.timestamp}</span>
+                <span class="badge severity-${log.severity.toUpperCase()}">${log.severity}</span>
+                <span>${log.message}</span>
+                ${aiLink}
+              </div>
+            `;
+          })
           .join("");
       }
 
