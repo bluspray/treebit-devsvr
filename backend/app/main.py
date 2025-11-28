@@ -52,6 +52,10 @@ class AnalyzeRequest(BaseModel):
     bmc_host: Optional[str] = None
 
 
+class AiSearchRequest(BaseModel):
+    query: str
+
+
 app = FastAPI(title="Hardware Monitoring API", version="0.2.0")
 
 app.add_middleware(
@@ -158,3 +162,25 @@ async def analyze_endpoint(payload: AnalyzeRequest) -> dict:
         }
     except Exception:
         raise HTTPException(status_code=500, detail="analysis_failed")
+
+
+@app.post("/api/ai-search")
+async def ai_search(payload: AiSearchRequest) -> dict:
+    """
+    Stub for AI search. Replace mock response with a real ChatGPT API call if keys/network are available.
+    """
+    query = payload.query.strip()
+    if not query:
+        raise HTTPException(status_code=400, detail="query_required")
+    # TODO: integrate ChatGPT API here when credentials/network are ready.
+    return {
+        "query": query,
+        "problem": f"요청된 장애 로그/질문: {query}",
+        "solutions": [
+            "장애 로그 키워드로 벤더 KB/레드피시/IPMI 로그를 교차 확인합니다.",
+            "전력/냉각/스토리지/네트워크 구성 요소의 센서·이벤트 로그를 재확인합니다.",
+            "펌웨어/BMC 버전이 최신인지 확인하고, 구형이면 업데이트를 검토합니다.",
+            "동일 패턴 발생 시점을 기반으로 관련 서비스 재시작 또는 노드 격리 후 모니터링합니다.",
+        ],
+        "note": "현재는 모의 응답입니다. ChatGPT API 연동 후 실질적 해결책을 반환하도록 교체하세요.",
+    }

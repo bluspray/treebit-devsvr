@@ -194,6 +194,29 @@
         padding-left: 20px;
         color: #0f172a;
       }
+
+      .result {
+        background: #f8fafc;
+        border: 1px solid #d7deec;
+        border-radius: 12px;
+        padding: 12px;
+        min-height: 60px;
+      }
+
+      .solutions {
+        display: grid;
+        gap: 8px;
+      }
+
+      .pill {
+        display: inline-flex;
+        padding: 4px 10px;
+        border-radius: 10px;
+        background: #e0f2fe;
+        color: #075985;
+        font-weight: 700;
+        font-size: 12px;
+      }
     </style>
   </head>
   <body>
@@ -246,6 +269,21 @@
           <li>입력값이 없습니다.</li>
         </ul>
       </div>
+
+      <div class="card">
+        <div class="row" style="gap:6px; align-items:center;">
+          <h2 style="margin:0;">AI 분석 결과</h2>
+          <span class="pill" id="status-pill">대기 중</span>
+        </div>
+        <div>
+          <h3>문제(요약)</h3>
+          <div class="result" id="ai-problem">-</div>
+        </div>
+        <div>
+          <h3>해결 방법 후보</h3>
+          <div class="solutions" id="ai-solutions"></div>
+        </div>
+      </div>
     </div>
 
     <script>
@@ -258,6 +296,9 @@
       const statusEl = document.createElement("p");
       statusEl.className = "muted";
       document.querySelector(".card .actions").after(statusEl);
+      const statusPill = document.getElementById("status-pill");
+      const aiProblem = document.getElementById("ai-problem");
+      const aiSolutions = document.getElementById("ai-solutions");
 
       function updateLinks() {
         const text = inputEl.value.trim();
@@ -292,9 +333,41 @@
 
       const { query } = updateLinks();
 
-      // 쿼리 파라미터가 있을 때 자동으로 첫 검색(GPT 링크) 열기
+      async function runAiSearch(text) {
+        const q = text.trim();
+        if (!q) {
+          statusPill.textContent = "쿼리 없음";
+          aiProblem.textContent = "-";
+          aiSolutions.innerHTML = "";
+          return;
+        }
+        statusPill.textContent = "검색 중...";
+        aiProblem.textContent = "-";
+        aiSolutions.innerHTML = "";
+        try {
+          const res = await fetch("/api/ai-search", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ query: q }),
+          });
+          if (!res.ok) throw new Error(`API ${res.status}`);
+          const data = await res.json();
+          aiProblem.textContent = data.problem || "-";
+          aiSolutions.innerHTML =
+            (data.solutions || []).map((s) => `<div class="result">${s}</div>`).join("") ||
+            '<div class="result">없음</div>';
+          statusPill.textContent = "완료";
+        } catch (err) {
+          statusPill.textContent = "실패";
+          aiProblem.textContent = "AI 검색 실패: " + err.message;
+          aiSolutions.innerHTML = "";
+        }
+      }
+
+      // 쿼리 파라미터가 있을 때 자동으로 첫 검색(GPT 링크) 열기 + 백엔드 호출
       if (query && query !== "BMC log error troubleshooting") {
         statusEl.textContent = "자동으로 AI 검색을 시작합니다...";
+        runAiSearch(query);
         setTimeout(() => {
           if (!autoOpened) {
             autoOpened = true;
@@ -303,6 +376,7 @@
         }, 500);
       } else {
         statusEl.textContent = "";
+        statusPill.textContent = "대기 중";
       }
     </script>
   </body>
