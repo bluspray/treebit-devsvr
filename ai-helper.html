@@ -255,6 +255,9 @@
       const geminiBtn = document.getElementById("btn-gemini");
       const perpBtn = document.getElementById("btn-perplexity");
       const copyBtn = document.getElementById("btn-copy");
+      const statusEl = document.createElement("p");
+      statusEl.className = "muted";
+      document.querySelector(".card .actions").after(statusEl);
 
       function updateLinks() {
         const text = inputEl.value.trim();
@@ -264,9 +267,11 @@
         gptBtn.href = `https://www.google.com/search?q=${encoded}+ChatGPT+fix`;
         geminiBtn.href = `https://www.google.com/search?q=${encoded}+Gemini+solution`;
         perpBtn.href = `https://www.perplexity.ai/search?q=${encoded}`;
+        return { query, encoded };
       }
 
       // 초기 URL 쿼리(q) 반영
+      let autoOpened = false;
       (() => {
         const params = new URLSearchParams(window.location.search);
         const q = params.get("q");
@@ -285,7 +290,20 @@
         }
       });
 
-      updateLinks();
+      const { query } = updateLinks();
+
+      // 쿼리 파라미터가 있을 때 자동으로 첫 검색(GPT 링크) 열기
+      if (query && query !== "BMC log error troubleshooting") {
+        statusEl.textContent = "자동으로 AI 검색을 시작합니다...";
+        setTimeout(() => {
+          if (!autoOpened) {
+            autoOpened = true;
+            window.open(gptBtn.href, "_blank", "noopener");
+          }
+        }, 500);
+      } else {
+        statusEl.textContent = "";
+      }
     </script>
   </body>
 </html>
