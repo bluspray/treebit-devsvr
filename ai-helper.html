@@ -266,6 +266,13 @@
         perpBtn.href = `https://www.perplexity.ai/search?q=${encoded}`;
       }
 
+      // 초기 URL 쿼리(q) 반영
+      (() => {
+        const params = new URLSearchParams(window.location.search);
+        const q = params.get("q");
+        if (q) inputEl.value = q;
+      })();
+
       inputEl.addEventListener("input", updateLinks);
       copyBtn.addEventListener("click", async () => {
         const text = inputEl.value.trim() || "BMC log error troubleshooting";
