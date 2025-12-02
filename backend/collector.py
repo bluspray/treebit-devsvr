@@ -21,6 +21,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 import httpx
+import subprocess
 
 NormalizedLog = Dict[str, Any]
 
@@ -44,13 +45,21 @@ def normalize_log(
     }
 
 
+VENDOR_LOG_PATHS = {
+    "hpe": "/Systems/1/LogServices/IEL/Entries",  # iLO IML
+    "dell": "/Systems/System.Embedded.1/LogServices/Lclog/Entries",  # iDRAC Lifecycle
+    "lenovo": "/Systems/1/LogServices/SEL/Entries",  # IMM/XCC 기본
+    "supermicro": "/Systems/1/LogServices/SEL/Entries",
+    "other": "/Systems/1/LogServices/SEL/Entries",
+}
+
+
 async def fetch_redfish_logs(
     bmc_host: str,
     username: str,
     password: str,
     vendor: str,
     system_path: str = "/Systems/1",
-    log_path: str = "/Systems/1/LogServices/SEL/Entries",
 ) -> List[NormalizedLog]:
     """Fetch Redfish log entries and normalize.
 
@@ -59,6 +68,7 @@ async def fetch_redfish_logs(
     """
     async with httpx.AsyncClient(verify=False, timeout=10) as client:
         system_url = f"https://{bmc_host}/redfish/v1{system_path}"
+        log_path = VENDOR_LOG_PATHS.get(vendor, "/Systems/1/LogServices/SEL/Entries")
         logs_url = f"https://{bmc_host}/redfish/v1{log_path}"
         await client.get(system_url, auth=(username, password))  # priming / auth check
         res = await client.get(logs_url, auth=(username, password))
@@ -83,6 +93,14 @@ async def fetch_redfish_logs(
             )
         )
     return normalized
+
+
+def run_ipmitool(args: List[str]) -> str:
+    """Run ipmitool and return stdout. Raises on error."""
+    proc = subprocess.run(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    if proc.returncode != 0:
+        raise RuntimeError(f"ipmitool failed: {proc.stderr.strip()}")
+    return proc.stdout
 
 
 def parse_ipmi_sel(sel_output: str, *, host: str, vendor: str, service: str = "ipmi") -> List[NormalizedLog]:
@@ -151,6 +169,11 @@ async def collect_logs(
         except Exception:
             # Fallback to IPMI if Redfish fails
             pass
-    # Placeholder: replace with actual ipmitool invocation and parsing
-    sel_mock = "1 | 09/13/2024 | 12:34:56 | Critical | PSU1 input lost"
-    return parse_ipmi_sel(sel_mock, host=bmc_host, vendor=vendor)
+    try:
+        sel_out = run_ipmitool(
+            ["ipmitool", "-I", "lanplus", "-H", bmc_host, "-U", username, "-P", password, "sel", "elist"]
+        )
+        return parse_ipmi_sel(sel_out, host=bmc_host, vendor=vendor)
+    except Exception:
+        sel_mock = "1 | 09/13/2024 | 12:34:56 | Critical | PSU1 input lost"
+        return parse_ipmi_sel(sel_mock, host=bmc_host, vendor=vendor)

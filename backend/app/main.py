@@ -1,5 +1,6 @@
 from datetime import datetime
 from pathlib import Path
+import os
 from typing import Literal, Optional
 
 import httpx
@@ -8,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
+from . import collector
 
 
 class ServerInput(BaseModel):
@@ -118,15 +120,28 @@ def analyze_logs(logs: list[LogEntry]) -> Analysis:
 @app.post("/api/connect", response_model=ConnectResponse)
 async def connect(payload: ServerInput) -> ConnectResponse:
     try:
-        if payload.vendor == "all":
-            vendors = ["hpe", "dell", "lenovo", "supermicro", "other"]
-            logs: list[LogEntry] = []
-            for v in vendors:
-                logs.extend(mock_logs(v, host=f"{v}-demo"))
-            hardware = mock_hardware("all")
-        else:
+        use_real = os.environ.get("TEMS_REAL_FETCH") == "1"
+        if use_real:
+            # Real fetch from BMC
+            logs_raw = await collector.collect_logs(
+                vendor=payload.vendor,
+                bmc_host=payload.bmc_host,
+                username=payload.username,
+                password=payload.password,
+                prefer_redfish=True,
+            )
+            logs = [LogEntry(**l, vendor=payload.vendor) for l in logs_raw]
             hardware = mock_hardware(payload.vendor)
-            logs = mock_logs(payload.vendor, host=payload.bmc_host)
+        else:
+            if payload.vendor == "all":
+                vendors = ["hpe", "dell", "lenovo", "supermicro", "other"]
+                logs: list[LogEntry] = []
+                for v in vendors:
+                    logs.extend(mock_logs(v, host=f"{v}-demo"))
+                hardware = mock_hardware("all")
+            else:
+                hardware = mock_hardware(payload.vendor)
+                logs = mock_logs(payload.vendor, host=payload.bmc_host)
     except httpx.HTTPStatusError as exc:
         raise HTTPException(status_code=exc.response.status_code, detail="BMC auth failed")
     except httpx.RequestError:
